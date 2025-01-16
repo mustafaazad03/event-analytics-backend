@@ -6,3 +6,80 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          Role      @default(VIEWER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  events        Event[]   @relation("EventOrganizer")
+  participations EventParticipant[]
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  type        EventType
+  capacity    Int
+  organizerId String
+  organizer   User      @relation("EventOrganizer", fields: [organizerId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sessions    Session[]
+  participants EventParticipant[]
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  name        String
+  startTime   DateTime
+  endTime     DateTime
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id])
+  interactions Interaction[]
+}
+
+model EventParticipant {
+  id        String    @id @default(cuid())
+  userId    String
+  eventId   String
+  user      User      @relation(fields: [userId], references: [id])
+  event     Event     @relation(fields: [eventId], references: [id])
+  joinedAt  DateTime  @default(now())
+  @@unique([userId, eventId])
+}
+
+model Interaction {
+  id        String    @id @default(cuid())
+  type      InteractionType
+  content   String?
+  sentiment Float?
+  sessionId String
+  session   Session   @relation(fields: [sessionId], references: [id])
+  userId    String
+  createdAt DateTime  @default(now())
+}
+
+enum Role {
+  ADMIN
+  ORGANIZER
+  VIEWER
+}
+
+enum EventType {
+  VIRTUAL
+  HYBRID
+}
+
+enum InteractionType {
+  CHAT
+  QUESTION
+  POLL_RESPONSE
+  REACTION
+}
